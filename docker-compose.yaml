@@ -1,0 +1,81 @@
+version: '3'
+services:
+  zoo1:
+    image: zookeeper
+    restart: always
+    hostname: zoo1
+    ports:
+      - 2181:2181
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=0.0.0.0:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=zoo3:2888:3888;2181
+
+  zoo2:
+    image: zookeeper
+    restart: always
+    hostname: zoo2
+    ports:
+      - 2182:2181
+    environment:
+      ZOO_MY_ID: 2
+      ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=0.0.0.0:2888:3888;2181 server.3=zoo3:2888:3888;2181
+
+  zoo3:
+    image: zookeeper
+    restart: always
+    hostname: zoo3
+    ports:
+      - 2183:2181
+    environment:
+      ZOO_MY_ID: 3
+      ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=0.0.0.0:2888:3888;2181
+
+  kafka:
+    image: edgarquiroz/kafka:1.0.0
+    restart: always
+    hostname: kafka
+    ports: 
+      - 9092:9092
+    depends_on:
+      - zoo1
+      - zoo2
+      - zoo3
+    command: /etc/kafka/bin/kafka-server-start.sh /etc/kafka/config/server.properties
+      
+  trends:
+    image: edgarquiroz/spark:3.0.0-preview2
+    hostname: google_trends
+    environment:
+      - SPARK_LOCAL_HOSTNAME=localhost
+    depends_on:
+      - kafka
+    volumes:
+      - ./jobs/google_trends/:/work
+    tty: true
+    stdin_open: true
+    command: /bin/bash 
+
+  trends_consumer:
+    image: edgarquiroz/spark:3.0.0-preview2
+    hostname: trends_consumer
+    environment:
+      - SPARK_LOCAL_HOSTNAME=localhost
+    depends_on:
+      - kafka
+    volumes: 
+      - ./jobs/trends_consumer/output/:/work
+    tty: true
+    stdin_open: true
+    command: /bin/bash 
+
+
+
+
+
+
+
+
+
+
+
+
